@@ -1,39 +1,64 @@
-use minreq;
-//use serde_json::{Value};
-use serde::{Deserialize};
+use clap::Parser;
+use geo;
+use grid;
 
-#[derive( Deserialize, Debug)]
-struct NationalMapPointElevationResponse {
-    value: f64, // elevation
+mod csv_out;
+mod elevation;
+
+/// Supported formats for latitude/longitude. (Note put "double quotes" around it.)
+///
+/// * "40° 26' 46" N 79° 58' 56" W"
+/// * "N 40° 26' 46" W 79° 58' 56""
+/// * "40° 26.767' N 79° 58.933' W"
+/// * "N 40° 26.767' W 79° 58.933'"
+/// * "N 40.446° W 79.982°"
+/// * "40.446° N 79.982° W"
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// latitude/longitude for the center of the map
+    #[arg(short, long)]
+    center: String,
+
+    /// map radius from the center, in miles
+    #[arg(short, long)]
+    radius: u16,
+
+    /// max level number
+    #[arg(short, long)]
+    levels: u8,
+
+    #[arg(short, long)]
+    /// number of column/row spacings
+    spacings: i16,
 }
 
-fn get_elevation(x: f64, y: f64) -> i32 {
-    let response = minreq::get("https://epqs.nationalmap.gov/v1/json")
-        .with_param("x", x.to_string())
-        .with_param("y", y.to_string())
-        .with_param("wkid", "4326")
-        .with_param("units", "feet")
-        .with_header("accept", "application/json").send().unwrap_or_else(|error| {
-            panic!("Response error: {error:?}");
-        });
-    assert_eq!(200, response.status_code);
-    assert_eq!("OK", response.reason_phrase);
-    let response_str = response.as_str().unwrap_or_else(|error| {
-        panic!("Response string error: {error:?}");
-    });
-    println!("{response_str}");
-    let nmper: NationalMapPointElevationResponse = serde_json::from_str(response_str).unwrap_or_else(|error| {
-        panic!("Json response string error: {error:?}")
-    });
-    return nmper.value as i32;
-}
+fn get_lego_elevations(elevations: &grid::Grid<i32>, levels : u8) -> grid::Grid<u8> {
 
-// From here: https://gis.stackexchange.com/questions/251643/approx-distance-between-any-2-longitudes-at-a-given-latitude#:~:text=To%20convert%20a%20given%20latitude%20into%20the%20approximate,%2A%2069.172%20with%20the%20answer%20being%20~47%20miles.
-// (90 - Decimal degrees) * Pi / 180 * 69.172
+    let mut lego_elevations: grid::Grid<u8> = grid::Grid::new(elevations.rows(), elevations.cols());
+    let min_elevation = elevations.iter().min().unwrap();
+    let max_elevation = elevations.iter().max().unwrap() + 1;
+    for (e, le) in elevations.iter().zip(lego_elevations.iter_mut()) {
+        *le = ((e - min_elevation) * (levels as i32 + 1) / (max_elevation - min_elevation)) as u8;
+    }
+    return lego_elevations;
+}
 
 fn main() {
-    let x = -121.760278;
-    let y = 46.851667;
-    let elevation = get_elevation(x, y);
-    println!("x: {x}, y: {y}, elevation: {elevation}");
+    let args = Args::parse();
+    let center : geo::Point = latlon::parse(args.center).unwrap();
+
+    // TODO: center pass in f64,f64 for lat/lon.
+    // TODO: CLI bounds checking.
+
+    // Mt Rainier
+    // let center = geo::Point::new(-121.760278, 46.851667);
+
+    // Mt Kilimanjaro
+    // let center = geo::Point::new(37.35333333,-3.075833333);
+
+    let elevations = elevation::get_elevation_grid(&center, args.radius, args.spacings);
+    println!("elevations: {elevations:?}");
+    let lego_elevations : grid::Grid<u8> = get_lego_elevations(&elevations, args.levels);
+    csv_out::write_grid_to_csv("elevation.csv", &lego_elevations);
 }
