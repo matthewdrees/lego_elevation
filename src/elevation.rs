@@ -7,8 +7,11 @@ use serde::{Deserialize};
 struct NationalMapPointElevationResponse {
     value: f64, // elevation
 }
-
-fn get_elevation(lat: f64, lon: f64) -> i32 {
+/// Fetch elevation from latitude/longitude using the USGS Point Query Service
+///
+/// https://apps.nationalmap.gov/epqs/
+///
+fn get_elevation_usgs_point_query_service(lat: f64, lon: f64) -> i32 {
     let response = minreq::get("https://epqs.nationalmap.gov/v1/json")
         .with_param("x", lon.to_string())
         .with_param("y", lat.to_string())
@@ -50,7 +53,7 @@ pub fn get_elevation_grid(center: &geo::Point, radius: u16, spacings: i16) -> gr
         let miles_between_lons = get_miles_between_longitude_lines(lat);
         for x in 0..spacings {
             let lon = center.x() + f_radius / miles_between_lons * (x - mid) as f64 / mid as f64;
-            let elevation = get_elevation(lat, lon);
+            let elevation = get_elevation_usgs_point_query_service(lat, lon);
             println!("y: {y}, x: {x}, lat: {lat}, lon: {lon}, elevation: {elevation}");
             elevations[(y as usize, x as usize)] = elevation;
         }
