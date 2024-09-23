@@ -7,9 +7,9 @@ mod usgs;
 
 /// Fetch elevation data suitable for building a 3D relief map out of legos.
 ///
-/// Example:
+/// Example: (Mount Rainier)
 ///
-///     lego_elevation --center "46°51′6″N 121°45′37″W" --radius 7 --levels 9 --gridsize 29
+///   $ lego_elevation --center "46°51′6″N 121°45′37″W" --radius 7 --levels 9 --gridsize 32
 ///
 /// Supported latitude/longitude formats:
 ///
@@ -52,17 +52,7 @@ fn get_lego_elevations(elevations: &grid::Grid<i32>, levels : u8) -> grid::Grid<
 fn main() {
     let args = Args::parse();
     let center : geo::Point = latlon::parse(args.center).unwrap();
-
-    // TODO: CLI bounds checking.
-
-    // Mt Rainier
-    // let center = geo::Point::new(-121.760278, 46.851667);
-
-    // Mt Kilimanjaro
-    // let center = geo::Point::new(37.35333333,-3.075833333);
-
     let elevations = usgs::get_elevation_grid(&center, args.radius, args.gridsize);
-    println!("elevations: {elevations:?}");
     let lego_elevations : grid::Grid<u8> = get_lego_elevations(&elevations, args.levels);
     csv_out::write_grid_to_csv("elevation.csv", &lego_elevations);
 }
