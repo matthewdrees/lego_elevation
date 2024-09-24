@@ -1,7 +1,9 @@
 use clap;
-use clap::{Parser};
+use clap::Parser;
 use geo;
 use grid;
+use indicatif::ProgressBar;
+use simplelog;
 
 mod csv_out;
 mod usgs;
@@ -36,6 +38,9 @@ struct Args {
     /// Number of columns and rows
     #[arg(short, long, value_parser= clap::value_parser!(i16).range(1..=1000))]
     gridsize: i16,
+
+    #[arg(short, long, default_value_t = false)]
+    verbose: bool,
 }
 
 fn get_lego_elevations(elevations: &grid::Grid<i32>, levels : u8) -> grid::Grid<u8> {
@@ -55,7 +60,19 @@ fn parse_center(s: &str) -> Result<geo::Point, String> {
 
 fn main() {
     let args = Args::parse();
-    let elevations = usgs::get_elevation_grid(args.center, args.radius, args.gridsize);
+
+    let term_log_level = if args.verbose {simplelog::LevelFilter::Info} else {simplelog::LevelFilter::Error};
+    simplelog::CombinedLogger::init(
+        vec![
+            simplelog::TermLogger::new(term_log_level, simplelog::Config::default(), simplelog::TerminalMode::Mixed, simplelog::ColorChoice::Auto),
+            simplelog::WriteLogger::new(simplelog::LevelFilter::Error, simplelog::Config::default(), std::fs::File::create("lego_elevation.log").unwrap()),
+        ]
+    ).unwrap();
+
+    // Note we hide the progress bar if verbose.
+    let pb = if args.verbose {ProgressBar::hidden()} else {ProgressBar::new((args.gridsize * args.gridsize) as u64)};
+    let elevations = usgs::get_elevation_grid(args.center, args.radius, args.gridsize, || {pb.inc(1);});
     let lego_elevations : grid::Grid<u8> = get_lego_elevations(&elevations, args.levels);
     csv_out::write_grid_to_csv("elevation.csv", &lego_elevations);
+    pb.finish();
 }

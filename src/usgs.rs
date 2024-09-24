@@ -2,6 +2,7 @@ use geo;
 use grid;
 use minreq;
 use serde::{Deserialize};
+use log;
 
 const KILOMETERS_PER_LAT_DEGREE : f64 = 110.567;
 
@@ -15,6 +16,7 @@ struct NationalMapPointElevationResponse {
 /// https://apps.nationalmap.gov/epqs/
 ///
 fn get_elevation_usgs_point_query_service(lat: f64, lon: f64) -> i32 {
+    // TODO if this fails did something in the server API change?
     let response = minreq::get("https://epqs.nationalmap.gov/v1/json")
         .with_param("x", lon.to_string())
         .with_param("y", lat.to_string())
@@ -23,15 +25,17 @@ fn get_elevation_usgs_point_query_service(lat: f64, lon: f64) -> i32 {
         .with_header("accept", "application/json").send().unwrap_or_else(|error| {
             panic!("Response error: {error:?}");
         });
+    // TODO if this isn't 200 let the user know.
     assert_eq!(200, response.status_code);
     assert_eq!("OK", response.reason_phrase);
     let response_str = response.as_str().unwrap_or_else(|error| {
         panic!("Response string error: {error:?}");
     });
-    // println!("{response_str}");
+    // TODO if this isn't valid JSON then there wasn't valid elevation at this point.
     let nmper: NationalMapPointElevationResponse = serde_json::from_str(response_str).unwrap_or_else(|error| {
-        panic!("Json response string error: {error:?}")
+        panic!("Json response string error: '{error:?}', response_str: '{response_str}'")
     });
+    // TODO if this fails did something in the server API change?
     return nmper.value.parse::<f64>().unwrap_or_else(|error| {
         panic!("meters string to f64 error: {error:?}");
     }) as i32;
@@ -54,7 +58,7 @@ fn latlon_to_string(lat : f64, lon: f64) -> String {
     return format!("{abslat:.5} {latdir}, {abslon:.6} {londir}");
 }
 
-pub fn get_elevation_grid(center: geo::Point, radius: u16, gridsize: i16) -> grid::Grid<i32> {
+pub fn get_elevation_grid<F: Fn()>(center: geo::Point, radius: u16, gridsize: i16, progress_update_func : F) -> grid::Grid<i32> {
 
     let mid = gridsize / 2;
     let f_radius = radius as f64;
@@ -67,8 +71,9 @@ pub fn get_elevation_grid(center: geo::Point, radius: u16, gridsize: i16) -> gri
             let lon = center.x() + f_radius / km_between_lons * (x - mid) as f64 / mid as f64;
             let elevation = get_elevation_usgs_point_query_service(lat, lon);
             let latlonstr = latlon_to_string(lat, lon);
-            println!("y: {y}, x: {x}, \"{latlonstr}\", {elevation} meters");
+            log::info!("y: {y}, x: {x}, \"{latlonstr}\", {elevation} meters");
             elevations[(y as usize, x as usize)] = elevation;
+            progress_update_func();
         }
     }
     return elevations;
