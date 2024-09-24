@@ -7,28 +7,29 @@ mod csv_out;
 mod usgs;
 
 /// Fetch elevation data suitable for building a 3D relief map out of legos.
-///
 /// Example: (Mount Rainier)
 ///
-///   $ lego_elevation --center "46°51′6″N 121°45′37″W" --radius 7 --levels 9 --gridsize 32
-///
 #[derive(Parser, Debug)]
-#[command(arg_required_else_help = true, version, about, long_about)]
+#[command(arg_required_else_help = true, version, about, long_about,
+after_help = "Examples:
+
+  (Mount Rainier)
+  $ lego_elevation --center \"46°51′6 N 121°45′37 W\" --radius 7 --levels 9 --gridsize 32")]
 struct Args {
     /// Center of the map, latitude/longitude. Supported formats:
-    ///   "46° 51' 6" N 121° 45' 37" W"
-    ///   "N 46° 51' 6" W 121° 45' 37""
-    ///   "46° 51.1' N 121° 58.6167' W"
-    ///   "46.86167° N 121.76028° W"
-    ///   "46.86167 N 121.76028 W"
-    #[arg(short, long, value_parser = parse_center)]
+    ///     "46° 51' 6 N 121° 45' 37 W"
+    ///     "N 46° 51' 6, W 121° 45' 37"
+    ///     "46° 51.1' N 121° 58.6167' W"
+    ///     "46.86167° N, 121.76028° W"
+    ///     "46.86167 N 121.76028 W"
+    #[arg(short, long, verbatim_doc_comment, value_parser = parse_center)]
     center: geo::Point,
 
     /// Map radius from the center, in kilometers
     #[arg(short, long, value_parser= clap::value_parser!(u16).range(1..=10_000))]
     radius: u16,
 
-    /// Number of levels
+    /// Number of elevation levels
     #[arg(short, long, value_parser= clap::value_parser!(u8).range(1..=255))]
     levels: u8,
 
