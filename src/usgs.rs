@@ -54,7 +54,7 @@ fn latlon_to_string(lat : f64, lon: f64) -> String {
     return format!("{abslat:.5} {latdir}, {abslon:.6} {londir}");
 }
 
-pub fn get_elevation_grid(center: &geo::Point, radius: u16, gridsize: i16) -> grid::Grid<i32> {
+pub fn get_elevation_grid(center: geo::Point, radius: u16, gridsize: i16) -> grid::Grid<i32> {
 
     let mid = gridsize / 2;
     let f_radius = radius as f64;

@@ -1,4 +1,5 @@
-use clap::Parser;
+use clap;
+use clap::{Parser};
 use geo;
 use grid;
 
@@ -11,30 +12,28 @@ mod usgs;
 ///
 ///   $ lego_elevation --center "46°51′6″N 121°45′37″W" --radius 7 --levels 9 --gridsize 32
 ///
-/// Supported latitude/longitude formats:
-///
-/// * "46° 51' 6" N 121° 45' 37" W"
-/// * "N 46° 51' 6" W 121° 45' 37""
-/// * "46° 51.1' N 121° 58.6167' W"
-/// * "46.86167° N 121.76028° W"
-/// * "46.86167 N 121.76028 W"
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
+#[command(arg_required_else_help = true, version, about, long_about)]
 struct Args {
-    /// Center of the map, latitude/longitude
-    #[arg(short, long)]
-    center: String,
+    /// Center of the map, latitude/longitude. Supported formats:
+    ///   "46° 51' 6" N 121° 45' 37" W"
+    ///   "N 46° 51' 6" W 121° 45' 37""
+    ///   "46° 51.1' N 121° 58.6167' W"
+    ///   "46.86167° N 121.76028° W"
+    ///   "46.86167 N 121.76028 W"
+    #[arg(short, long, value_parser = parse_center)]
+    center: geo::Point,
 
     /// Map radius from the center, in kilometers
-    #[arg(short, long)]
+    #[arg(short, long, value_parser= clap::value_parser!(u16).range(1..=10_000))]
     radius: u16,
 
-    /// Max level number
-    #[arg(short, long)]
+    /// Number of levels
+    #[arg(short, long, value_parser= clap::value_parser!(u8).range(1..=255))]
     levels: u8,
 
-    #[arg(short, long)]
     /// Number of columns and rows
+    #[arg(short, long, value_parser= clap::value_parser!(i16).range(1..=1000))]
     gridsize: i16,
 }
 
@@ -49,10 +48,13 @@ fn get_lego_elevations(elevations: &grid::Grid<i32>, levels : u8) -> grid::Grid<
     return lego_elevations;
 }
 
+fn parse_center(s: &str) -> Result<geo::Point, String> {
+    return latlon::parse(s).map_err(|error| error.to_string());
+}
+
 fn main() {
     let args = Args::parse();
-    let center : geo::Point = latlon::parse(args.center).unwrap();
-    let elevations = usgs::get_elevation_grid(&center, args.radius, args.gridsize);
+    let elevations = usgs::get_elevation_grid(args.center, args.radius, args.gridsize);
     let lego_elevations : grid::Grid<u8> = get_lego_elevations(&elevations, args.levels);
     csv_out::write_grid_to_csv("elevation.csv", &lego_elevations);
 }
