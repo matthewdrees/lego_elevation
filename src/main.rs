@@ -9,8 +9,6 @@ mod csv_out;
 mod usgs;
 
 /// Fetch elevation data suitable for building a 3D relief map out of legos.
-/// Example: (Mount Rainier)
-///
 #[derive(Parser, Debug)]
 #[command(arg_required_else_help = true, version, about, long_about,
 after_help = "Examples:
@@ -62,14 +60,9 @@ fn main() {
     let args = Args::parse();
 
     let term_log_level = if args.verbose {simplelog::LevelFilter::Info} else {simplelog::LevelFilter::Error};
-    simplelog::CombinedLogger::init(
-        vec![
-            simplelog::TermLogger::new(term_log_level, simplelog::Config::default(), simplelog::TerminalMode::Mixed, simplelog::ColorChoice::Auto),
-            simplelog::WriteLogger::new(simplelog::LevelFilter::Error, simplelog::Config::default(), std::fs::File::create("lego_elevation.log").unwrap()),
-        ]
-    ).unwrap();
+    simplelog::TermLogger::init(term_log_level, simplelog::Config::default(), simplelog::TerminalMode::Mixed, simplelog::ColorChoice::Auto).unwrap();
 
-    // Note we hide the progress bar if verbose.
+    // Hide the progress bar if verbose.
     let pb = if args.verbose {ProgressBar::hidden()} else {ProgressBar::new((args.gridsize * args.gridsize) as u64)};
     let elevations = usgs::get_elevation_grid(args.center, args.radius, args.gridsize, || {pb.inc(1);});
     let lego_elevations : grid::Grid<u8> = get_lego_elevations(&elevations, args.levels);

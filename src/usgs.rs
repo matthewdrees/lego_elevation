@@ -1,7 +1,7 @@
 use geo;
 use grid;
 use minreq;
-use serde::{Deserialize};
+use serde::Deserialize;
 use log;
 
 const KILOMETERS_PER_LAT_DEGREE : f64 = 110.567;
@@ -57,9 +57,7 @@ fn latlon_to_string(lat : f64, lon: f64) -> String {
     let abslon = lon.abs();
     return format!("{abslat:.5} {latdir}, {abslon:.6} {londir}");
 }
-
 pub fn get_elevation_grid<F: Fn()>(center: geo::Point, radius: u16, gridsize: i16, progress_update_func : F) -> grid::Grid<i32> {
-
     let mid = gridsize / 2;
     let f_radius = radius as f64;
     let grid_dim = gridsize as usize;
