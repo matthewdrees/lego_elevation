@@ -1,8 +1,4 @@
 use anyhow::{Context, Result};
-use geo;
-use grid;
-use minreq;
-use log;
 use serde::Deserialize;
 
 const KILOMETERS_PER_LAT_DEGREE : f64 = 110.567;
@@ -39,7 +35,7 @@ fn get_elevation_usgs_point_query_service(lat: f64, lon: f64) -> Result<i32> {
 pub fn get_km_between_longitude_lines(lat : f64) -> f64 {
     assert!(lat < 90.0);
     // From here: https://gis.stackexchange.com/questions/251643/approx-distance-between-any-2-longitudes-at-a-given-latitude
-    return (90.0 - lat.abs()) * std::f64::consts::PI / 180.0 * KILOMETERS_PER_LAT_DEGREE;
+    (90.0 - lat.abs()) * std::f64::consts::PI / 180.0 * KILOMETERS_PER_LAT_DEGREE
 }
 
 fn latlon_to_string(lat : f64, lon: f64) -> String {
@@ -47,17 +43,17 @@ fn latlon_to_string(lat : f64, lon: f64) -> String {
     let londir = if lon < 0.0 {"W"} else {"E"};
     let abslat = lat.abs();
     let abslon = lon.abs();
-    return format!("{abslat:.5} {latdir}, {abslon:.6} {londir}");
+    format!("{abslat:.5} {latdir}, {abslon:.6} {londir}")
 }
 
 fn validate_latitude(lat: f64) -> Result<()> {
-    if lat > 90.0 || lat < -90.0 {
+    if !(-90.0..=90.0).contains(&lat) {
         return Err(anyhow::anyhow!("Bad latitude {lat}"));
     }
     Ok(())
 }
 fn validate_longitude(lon: f64) -> Result<()> {
-    if lon > 180.0 || lon < -180.0 {
+    if !(-180.0..=180.0).contains(&lon) {
         return Err(anyhow::anyhow!("Bad longitude {lon}"));
     }
     Ok(())

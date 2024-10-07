@@ -1,6 +1,3 @@
-use grid;
-use csv;
-
 
 // TODO make this generic
 pub fn write_grid_to_csv(filename: &str, grid_vals : &grid::Grid<u8>) {

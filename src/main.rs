@@ -1,10 +1,6 @@
 use anyhow::Result;
-use clap;
 use clap::Parser;
-use geo;
-use grid;
 use indicatif::ProgressBar;
-use simplelog;
 
 mod csv_out;
 mod usgs;
@@ -52,11 +48,11 @@ fn get_lego_elevations(elevations: &grid::Grid<i32>, levels : u8) -> grid::Grid<
     for (e, le) in elevations.iter().zip(lego_elevations.iter_mut()) {
         *le = ((e - min_elevation) * (levels as i32 + 1) / (max_elevation - min_elevation)) as u8;
     }
-    return lego_elevations;
+    lego_elevations
 }
 
 fn parse_center(s: &str) -> Result<geo::Point, String> {
-    return latlon::parse(s).map_err(|error| error.to_string());
+    latlon::parse(s).map_err(|error| error.to_string())
 }
 
 fn main() -> Result<()> {
