@@ -2,10 +2,15 @@
 name = "lego_elevation"
 version = "0.1.0"
 edition = "2021"
+repository = "https://github.com/matthewdrees/lego_elevation"
+description = "Get elevation data suitable for building a terrain map out of legos"
+license = "MIT"
+keywords = ["lego", "elevation"]
 
 [dependencies]
+anyhow = "1.0.89"
 csv = "1.3.0"
-clap = { version = "4.5.18", features = ["derive"]}
+clap = { version = "4.5.19", features = ["derive"]}
 geo = "0.28.0"
 grid = "0.15.0"
 indicatif = "0.17.8"
