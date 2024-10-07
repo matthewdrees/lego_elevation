@@ -28,5 +28,5 @@ Get elevation data suitable for building a terrain map out of legos.
 
 # Limitations
 
-  * Currently uses the USGS Single Point Query service so fetching data is slow.
+  * Currently uses the USGS Single Point Query service so fetching data is slow. (It took about 4 minutes to fetch ~1000 points.)
   * Elevation data only available on land in Canada, Mexico, and USA. (TODO: use to the [ETOPO Global Relief Model](https://www.ncei.noaa.gov/products/etopo-global-relief-model)).
