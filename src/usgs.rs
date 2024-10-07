@@ -31,7 +31,7 @@ fn get_elevation_usgs_point_query_service(lat: f64, lon: f64) -> Result<i32> {
         return Err(anyhow::anyhow!(format!("Bad http status {status_code}, reason: {reason_phrase}, from {url}")));
     }
     let response_str = response.as_str().with_context(||"http response string error")?;
-    let nmper: NationalMapPointElevationResponse = serde_json::from_str(response_str).with_context(||format!("Json response string error from {url}"))?;
+    let nmper: NationalMapPointElevationResponse = serde_json::from_str(response_str).with_context(||format!("Json response string error from {url}. Text: '{response_str}'. Note: elevation data only supported in Canada, Mexico, and USA."))?;
     let elevation = nmper.value.parse::<f64>().with_context(||"meters string to f64 error")? as i32;
     Ok(elevation)
 }
