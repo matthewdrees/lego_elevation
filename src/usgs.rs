@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use serde::Deserialize;
 
-const KILOMETERS_PER_LAT_DEGREE : f64 = 110.567;
+const KILOMETERS_PER_LAT_DEGREE: f64 = 110.567;
 
 /// For deserizliaing the JSON repsonse from USGS Point Query Service
 #[derive(Deserialize, Debug)]
@@ -20,27 +20,36 @@ fn get_elevation_usgs_point_query_service(lat: f64, lon: f64) -> Result<i32> {
         .with_param("y", lat.to_string())
         .with_param("wkid", "4326")
         .with_param("units", "meters")
-        .with_header("accept", "application/json").send().with_context(||format!("error getting response from {url}"))?;
+        .with_header("accept", "application/json")
+        .send()
+        .with_context(|| format!("error getting response from {url}"))?;
     if response.status_code != 200 {
         let status_code = response.status_code;
         let reason_phrase = response.reason_phrase;
-        return Err(anyhow::anyhow!(format!("Bad http status {status_code}, reason: {reason_phrase}, from {url}")));
+        return Err(anyhow::anyhow!(format!(
+            "Bad http status {status_code}, reason: {reason_phrase}, from {url}"
+        )));
     }
-    let response_str = response.as_str().with_context(||"http response string error")?;
+    let response_str = response
+        .as_str()
+        .with_context(|| "http response string error")?;
     let nmper: NationalMapPointElevationResponse = serde_json::from_str(response_str).with_context(||format!("Json response string error from {url}. Text: '{response_str}'. Note: elevation data only supported in Canada, Mexico, and USA."))?;
-    let elevation = nmper.value.parse::<f64>().with_context(||"meters string to f64 error")? as i32;
+    let elevation = nmper
+        .value
+        .parse::<f64>()
+        .with_context(|| "meters string to f64 error")? as i32;
     Ok(elevation)
 }
 
-pub fn get_km_between_longitude_lines(lat : f64) -> f64 {
+pub fn get_km_between_longitude_lines(lat: f64) -> f64 {
     assert!(lat < 90.0);
     // From here: https://gis.stackexchange.com/questions/251643/approx-distance-between-any-2-longitudes-at-a-given-latitude
     (90.0 - lat.abs()) * std::f64::consts::PI / 180.0 * KILOMETERS_PER_LAT_DEGREE
 }
 
-fn latlon_to_string(lat : f64, lon: f64) -> String {
-    let latdir = if lat < 0.0 {"S"} else {"N"};
-    let londir = if lon < 0.0 {"W"} else {"E"};
+fn latlon_to_string(lat: f64, lon: f64) -> String {
+    let latdir = if lat < 0.0 { "S" } else { "N" };
+    let londir = if lon < 0.0 { "W" } else { "E" };
     let abslat = lat.abs();
     let abslon = lon.abs();
     format!("{abslat:.5} {latdir}, {abslon:.6} {londir}")
@@ -59,10 +68,14 @@ fn validate_longitude(lon: f64) -> Result<()> {
     Ok(())
 }
 
-pub fn get_elevation_grid<F: Fn()>(center: geo::Point, radius: u16, gridsize: i16, progress_update_func : F) -> Result<grid::Grid<i32>> {
-
+pub fn get_elevation_grid<F: Fn()>(
+    center: geo::Point,
+    radius: u16,
+    gridsize: i16,
+    progress_update_func: F,
+) -> Result<grid::Grid<i32>> {
     let grid_dim = gridsize as usize;
-    let mut elevations : grid::Grid<i32> = grid::Grid::new(grid_dim, grid_dim);
+    let mut elevations: grid::Grid<i32> = grid::Grid::new(grid_dim, grid_dim);
     let mid = gridsize / 2;
     let f_radius = radius as f64;
     for y in 0..gridsize {
